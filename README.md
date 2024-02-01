@@ -1,4 +1,4 @@
-# Pra-GE-ATLAS: empowering <em>Pinus radiata<em> stress and breeding research through a comprehensive multi-omics database #
+# Pra-GE-ATLAS: empowering <em>Pinus radiata</em> stress and breeding research through a comprehensive multi-omics database #
 
 - Data :bookmark_tabs: : <a href=https://rocesv.github.io/Pra-GE-ATLAS>Pra-GE-ATLAS DB</a> & <a href=https://zenodo.org/record/10494507>zenodo repository </a>
 - Interactive tools and analyses :bar_chart: : <a href=https://rocesv.github.io/Pra-GE-ATLAS>Pra-GE-ATLAS DB</a> 
