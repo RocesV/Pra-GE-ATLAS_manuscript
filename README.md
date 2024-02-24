@@ -7,5 +7,5 @@
 
 # Workflow #
 <p align=center>
-<img src=imgs/Pra-GE-ATLAS-Workflow.png />​
+<img src=imgs/Pra-GE-ATLAS-Workflow_2.png />​
 </p>
