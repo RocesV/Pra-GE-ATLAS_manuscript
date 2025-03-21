@@ -41,6 +41,8 @@ library(GenomicRanges)
 library(GenomicFeatures)
 library(hexbin)
 library(pals)
+require(ggsci)
+require(scales)
 
 #### 1. Import metadata, all events and expression ####
 
@@ -341,6 +343,7 @@ compare.DNA <- function(x,y){
           }
    )
 }
+
 Variants.seq.diff <- function(matrix1, kmer, export = TRUE, path) {
    ########################
    # Variants.seq.diff: KisSplice extension. Finds the variable sequence (S) between two isoforms. 
@@ -1525,8 +1528,6 @@ for(i in names(Fimpact)){
    
 }
 
-require(ggsci)
-require(scales)
 show_col(pal_npg("nrc")(4))
 pal_cds <- c("#E64B35FF", "#4DBBD5FF", "#00A087FF", "#3C5488FF")
 
@@ -1990,7 +1991,7 @@ setwd(output.path)
 
 ## Data Prepare and checks
 
-data0 <- read.delim("G:/Pra-GE-ATLAS/ATLAS/Pinus_radiata/6.Transcriptional_Analyses/Tables/Expression/Batch_Corrected/Final_VST_lowFilt_Presence_batchCorrected.txt", header = T, sep = "\t")
+data0 <- read.delim("G:/Pra-GE-ATLAS/ATLAS/Pinus_radiata/6.Transcriptional_Analyses/Tables/Expression/Batch_Corrected/Final_VST_lowFilt_Presence_batchCorrected.txt", header = T, sep = "\t") #batch-removed
 data0 <- t(data0)
 
 sample_metada <- read.delim("clipboard", header = T)
@@ -2657,8 +2658,6 @@ write.table(AllTranscriptionalList.split.tissues.top$ES, file = "G:/Pra-GE-ATLAS
 write.table(AllTranscriptionalList.split.tissues.top$AltAD, file = "G:/Pra-GE-ATLAS/ATLAS/Pinus_radiata/6.Transcriptional_Analyses/MOFA/MOFA_tissues_split_top/AltAD.txt", sep = "\t", col.names = T, row.names = T, quote = F)
 write.table(AllTranscriptionalList.split.tissues.top$AS, file = "G:/Pra-GE-ATLAS/ATLAS/Pinus_radiata/6.Transcriptional_Analyses/MOFA/MOFA_tissues_split_top/AS.txt", sep = "\t", col.names = T, row.names = T, quote = F)
 
-## future think about HVF for each group and regulation level
-
 ## General
 
 AllTranscriptionalList.Expression.vars <- apply(AllTranscriptionalList.tissues$Expression, 1, var)
@@ -2684,9 +2683,6 @@ write.table(AllTranscriptionalList.tissues$Splicing, file = "G:/Pra-GE-ATLAS/ATL
 
 write.table(AllTranscriptionalList.tissues.top$Expression, file = "G:/Pra-GE-ATLAS/ATLAS/Pinus_radiata/6.Transcriptional_Analyses/MOFA/MOFA_tissues_all_top/Expression.txt", sep = "\t", col.names = T, row.names = T, quote = F)
 write.table(AllTranscriptionalList.tissues.top$Splicing, file = "G:/Pra-GE-ATLAS/ATLAS/Pinus_radiata/6.Transcriptional_Analyses/MOFA/MOFA_tissues_all_top/Splicing.txt", sep = "\t", col.names = T, row.names = T, quote = F)
-
-
-## future think about HVF for each group and regulation level
 
 AllTranscriptionalList.split.tissues <- list(Expression = as.matrix(read.table("/data/Transcriptional_MOFA/MOFA_tissues_split_all/Expression.txt")),
                                              IR = as.matrix(read.table("/data/Transcriptional_MOFA/MOFA_tissues_split_all/IR.txt")),
@@ -4268,96 +4264,3 @@ ht.PSF.IR <- Heatmap(PSF.df.IR, name = "PSF.-log10(FDR)", col = col_quantity, re
 
 draw(ht.Bin.IR + ht.PS.exp + ht.PSF.exp, ht_gap = unit(1, "cm"))
 draw(ht.Bin.IR %v% ht.PS.exp %v% ht.PSF.exp, ht_gap = unit(1, "cm"))
-
-#### 5. Plot barplots of isoform expression balance from validated events ####
-
-EventNormCounts <- read.delim("G:/Pra-GE-ATLAS/ATLAS/Pinus_radiata/6.Transcriptional_Analyses/Tables/Splicing/Batch_Corrected/WithGroup/0.countsEvents_lowFilter_PEandTE_batchCorrectedTechStudy_Normalized.txt")
-View(EventNormCounts)
-
-# ERD6
-
-ERD6.count <- EventNormCounts[EventNormCounts$events.names == "bcc_456625|Cycle_78",]
-ERD6.count <- ERD6.count[,-1]
-ERD6.count <- ERD6.count[!is.na(ERD6.count),]
-ERD6.count <- t(ERD6.count[1:2,])
-ERD6.count <- ERD6.count[-1,]
-ERD6.count <- ERD6.count[c(1:16, 18:42), ]
-
-
-ERD6 <- data.frame(Tissues = c(rep("Bud", 2),rep("Needle", 2)),
-                   Isoform = c("Long", "Short", "Long", "Short"),
-                   Expression = c(mean(ERD6.count[1:16,1])/sum(mean(ERD6.count[1:16,1]), mean(ERD6.count[1:16,2])), 
-                                  mean(ERD6.count[1:16,2])/sum(mean(ERD6.count[1:16,1]), mean(ERD6.count[1:16,2])),
-                                  mean(ERD6.count[17:41,1])/sum(mean(ERD6.count[17:41,1]), mean(ERD6.count[17:41,2])), 
-                                  mean(ERD6.count[17:41,2])/sum(mean(ERD6.count[17:41,1]), mean(ERD6.count[17:41,2]))
-                                  )
-                   )
-
-pal_annotation <- c("lightsteelblue", "lightgoldenrod1")
-plot1 <- ggplot(ERD6,aes(x=Tissues,y=Expression,fill=Isoform,color=Events,width=0.75),size=0.01)+
-   geom_bar(stat="identity",color="black",size=0.1)+theme_classic()+labs(x=NULL,y="Expression")+
-   scale_fill_manual(values=pal_annotation)+scale_colour_manual(values=rep("#000000",11))+
-   theme(legend.key = element_rect(color="gray",size=0.1),legend.key.size=unit(0.2,"cm"),
-         legend.position="right",legend.margin=margin(t=-0.1, r=-0.1, b=-0.1, l=-0.3, unit="cm"),
-         axis.text.x = element_text(color="black",size=5,face="bold"),axis.text.y = element_text(color="black",size=5.5),
-         axis.title.x = element_text(size=6,face="bold"),axis.title.y = element_text(size=6.5,face="bold"),
-         legend.title = element_text(size=6.5,face="bold"),legend.text = element_text(size=5.5),
-         panel.border = element_rect(colour = "black", fill=NA, size=0.2,linetype=3))
-
-# ELF4
-
-ELF4.count <- EventNormCounts[EventNormCounts$events.names == "bcc_668500|Cycle_4",]
-ELF4.count <- ELF4.count[,-1]
-ELF4.count <- ELF4.count[!is.na(ELF4.count),]
-ELF4.count <- t(ELF4.count[1:2,])
-ELF4.count <- ELF4.count[-1,]
-ELF4.count <- ELF4.count[c(1:16, 18:42), ]
-
-ELF4 <- data.frame(Tissues = c(rep("Bud", 2),rep("Needle", 2)),
-                   Isoform = c("Long", "Short", "Long", "Short"),
-                   Expression = c(mean(ELF4.count[1:16,1])/sum(mean(ELF4.count[1:16,1]), mean(ELF4.count[1:16,2])), 
-                                  mean(ELF4.count[1:16,2])/sum(mean(ELF4.count[1:16,1]), mean(ELF4.count[1:16,2])),
-                                  mean(ELF4.count[17:41,1])/sum(mean(ELF4.count[17:41,1]), mean(ELF4.count[17:41,2])), 
-                                  mean(ELF4.count[17:41,2])/sum(mean(ELF4.count[17:41,1]), mean(ELF4.count[17:41,2]))
-                   )
-)
-
-pal_annotation <- c("lightsteelblue", "lightgoldenrod1")
-plot2 <- ggplot(ELF4,aes(x=Tissues,y=Expression,fill=Isoform,color=Events,width=0.75),size=0.01)+
-   geom_bar(stat="identity",color="black",size=0.1)+theme_classic()+labs(x=NULL,y="Expression")+
-   scale_fill_manual(values=pal_annotation)+scale_colour_manual(values=rep("#000000",11))+
-   theme(legend.key = element_rect(color="gray",size=0.1),legend.key.size=unit(0.2,"cm"),
-         legend.position="right",legend.margin=margin(t=-0.1, r=-0.1, b=-0.1, l=-0.3, unit="cm"),
-         axis.text.x = element_text(color="black",size=5,face="bold"),axis.text.y = element_text(color="black",size=5.5),
-         axis.title.x = element_text(size=6,face="bold"),axis.title.y = element_text(size=6.5,face="bold"),
-         legend.title = element_text(size=6.5,face="bold"),legend.text = element_text(size=5.5),
-         panel.border = element_rect(colour = "black", fill=NA, size=0.2,linetype=3))
-
-# cpSRP43
-
-cpSRP43.count <- EventNormCounts[EventNormCounts$events.names == "bcc_629945|Cycle_2594791",]
-cpSRP43.count <- cpSRP43.count[,-1]
-cpSRP43.count <- cpSRP43.count[!is.na(cpSRP43.count),]
-cpSRP43.count <- t(cpSRP43.count[1:2,])
-cpSRP43.count <- cpSRP43.count[-1,]
-cpSRP43.count <- cpSRP43.count[c(1:16, 18:42), ]
-
-cpSRP43 <- data.frame(Tissues = c(rep("Bud", 2),rep("Needle", 2)),
-                   Isoform = c("Long", "Short", "Long", "Short"),
-                   Expression = c(mean(cpSRP43.count[1:16,1])/sum(mean(cpSRP43.count[1:16,1]), mean(cpSRP43.count[1:16,2])), 
-                                  mean(cpSRP43.count[1:16,2])/sum(mean(cpSRP43.count[1:16,1]), mean(cpSRP43.count[1:16,2])),
-                                  mean(cpSRP43.count[17:41,1])/sum(mean(cpSRP43.count[17:41,1]), mean(cpSRP43.count[17:41,2])), 
-                                  mean(cpSRP43.count[17:41,2])/sum(mean(cpSRP43.count[17:41,1]), mean(cpSRP43.count[17:41,2]))
-                   )
-)
-
-pal_annotation <- c("lightsteelblue", "lightgoldenrod1")
-plot3 <- ggplot(cpSRP43,aes(x=Tissues,y=Expression,fill=Isoform,color=Events,width=0.75),size=0.01)+
-   geom_bar(stat="identity",color="black",size=0.1)+theme_classic()+labs(x=NULL,y="Expression")+
-   scale_fill_manual(values=pal_annotation)+scale_colour_manual(values=rep("#000000",11))+
-   theme(legend.key = element_rect(color="gray",size=0.1),legend.key.size=unit(0.2,"cm"),
-         legend.position="right",legend.margin=margin(t=-0.1, r=-0.1, b=-0.1, l=-0.3, unit="cm"),
-         axis.text.x = element_text(color="black",size=5,face="bold"),axis.text.y = element_text(color="black",size=5.5),
-         axis.title.x = element_text(size=6,face="bold"),axis.title.y = element_text(size=6.5,face="bold"),
-         legend.title = element_text(size=6.5,face="bold"),legend.text = element_text(size=5.5),
-         panel.border = element_rect(colour = "black", fill=NA, size=0.2,linetype=3))
