@@ -688,8 +688,6 @@ ProtAtlas.jic <- ProtAtlas
 write.table(ProtAtlas, file = "G:/Pra-GE-ATLAS/ATLAS/Pinus_radiata/Protein_module/ProtAtlas.Analyses.txt", sep = "\t", quote = F, col.names = T)
 write.table(ProtAtlas, file = "F:/ATLAS_Pra/Protein_module/0.Process/ProtAtlas.Analyses.txt", sep = "\t", quote = F, col.names = T)
 
-
-
 #### 2. Global characterization ####
 
 PROTAS <- read.delim(file = "G:/Pra-GE-ATLAS/ATLAS/Pinus_radiata/Protein_module/ProtAtlas.Analyses.txt", header = T, sep = "\t")
@@ -720,6 +718,8 @@ Intensity <- c(rep("Control", 17), rep("T1", 5), rep("Control", 4), rep("T1", 4)
                rep("Control", 4),  rep("T1", 4), rep("T3", 4), 
                rep("Control", 8), rep("T1", 8), rep("T3", 8), rep("T5", 8),
                rep("Control", 8), rep("T1", 8), rep("T3", 8), rep("T5", 8))
+Batch <- c(rep("1", 12), rep("2", 10), rep("3", 12), rep("3", 15), rep("1", 28),rep("3", 12),rep("1", 32),rep("1", 32))
+
 
 Stress.Intensity <- paste(Stress, Intensity, sep = "_")
 Population.Stress <- paste(Population, Stress, sep = "_")
@@ -729,7 +729,7 @@ Technique.Intensity <- paste(Technique, Intensity, sep = "_")
 Stress.Intensity <- gsub("Control_Control", "Control", Stress.Intensity)
 Stress.Intensity <- gsub("Recovery_Recovery", "Recovery", Stress.Intensity)
 labelitass <- list(Stress = Stress, Intensity = Intensity, Population = Population, Technique = Technique, Tissues = Tissues, Stress.Intensity = Stress.Intensity, Population.Stress = Population.Stress, Population.Intensity = Population.Intensity,
-                   Technique.Stress = Technique.Stress, Technique.Intensity = Technique.Intensity)
+                   Technique.Stress = Technique.Stress, Technique.Intensity = Technique.Intensity, Batch = Batch)
 ncolors <- lapply(labelitass, function(x) length(levels(as.factor(x))))
 fcolors <- c(RColorBrewer::brewer.pal(12, "Paired") ,"black",  "peachpuff3", "lightgoldenrod")
 color.labelitass <- list(Stress = c("lightsteelblue3", "darkgreen", "salmon3", "lightsteelblue1", "purple"),
@@ -741,12 +741,15 @@ color.labelitass <- list(Stress = c("lightsteelblue3", "darkgreen", "salmon3", "
                          Population.Stress = fcolors[1:11],
                          Population.Intensity =  fcolors[1:14],
                          Technique.Stress = fcolors[1:12],
-                         Technique.Intensity = fcolors[1:15])
+                         Technique.Intensity = fcolors[1:15],
+                         Batch = fcolors[1:3])
 
 
 #### Descriptives ####
 
 PROTAS <- apply(PROTAS, MARGIN = 2, FUN = as.numeric)
+metadata  <- as.data.frame(do.call(cbind, labelitass)) 
+design <- model.matrix(~ 1, data = metadata)
 
 PROTAS.zscore <- apply(PROTAS, MARGIN = 2, FUN = function(x){
   x <- (x - mean(x))/sd(x)
@@ -772,9 +775,14 @@ PROTAS.quantiles <- apply(PROTAS, MARGIN = 2, FUN = function(x){
 PROTAS.raw <- PROTAS
 
 rawinputs <- list(raw = PROTAS.raw, zscore = PROTAS.zscore, log10 = PROTAS.log10, log10zscore = PROTAS.log10.zscore, quantile = PROTAS.quantiles)
+rawinputs <- lapply(rawinputs, function(x){
+  x <- removeBatchEffect(t(x), batch = metadata$Batch, design = design)
+  t(x)
+})
 
 #### PCA ####
 
+set.seed(404)
 inputs <- lapply(rawinputs, function(x) prcomp(x, center = F, scale. = F, rank. = 10))
 fviz_eig(inputs$raw)
 fviz_eig(inputs$zscore)
@@ -922,14 +930,12 @@ for(j in 1:length(INPUTS.F)){
 ## UV vs Recovery (UV) | PREV DONE
 ## Heat vs Recovery (Heat) | PREV DONE 
 
-
 inputs <- list(log10 = PROTAS.log10[c(98:121, 130:153),], log10.zscore = PROTAS.log10.zscore[c(98:121, 130:153),])
 Differential <- list()
-sva <- TRUE
+sva <- FALSE
 conditions <- list(Tissues = labelitass$Tissues, Stress = labelitass$Stress, Technique = labelitass$Technique)
 conditions <- list(Heat_UV_Chloroplast = labelitass$Stress[c(98:121, 130:153)])
 output.path <- "F:/ATLAS_Pra/Protein_module/0.Process/Tables/sva+limma/"
-
 
 for(l in 2:length(inputs)){
   for(v in 1:length(conditions)){
@@ -1445,6 +1451,10 @@ data0.quantiles <- apply(data0, MARGIN = 2, FUN = function(x){
 data0.raw <- data0
 
 data0.list <- list(raw = data0.raw, log10 = data0.log10, log10.zscore = data0.log10.zscore, quantiles = data0.quantiles)
+data0.list <- lapply(data0.list, function(x){
+  x <- removeBatchEffect(t(x), batch = metadata$Batch, design = design)
+  x <- t(x + abs(min(x)) + 0.01)
+})
 sample0.metadata <- data.frame(sample_ID = rownames(data0), Stress = labelitass$Stress, Intensity = labelitass$Intensity,
                                Population = labelitass$Population, Technique = labelitass$Technique, Tissues = labelitass$Tissues,
                                Stress.Intensity = labelitass$Stress.Intensity, Population.Stress = labelitass$Population.Stress,
@@ -1508,8 +1518,9 @@ text(sft$fitIndices[, 1],
 # - scale free networks in biology are rare https://www.nature.com/articles/s41467-019-08746-5: not the best thing for thresholding
 # - data could exhibit a strong driver that makes a subset of the samples globally different from the rest
 # causing high correlation among large groups of genes which invalidates the assumtion of the scale-free topology approximation
-# In this case, the lack of scale-free topology fit turns out to be caused by interesting biological factors (as showed in UMAP and OUTLIERS in SampleOutliersTraits)
-# so appropiate sof-thresholding power can be chosen based on the number of samples specified by a table update in December 2017.
+# In this case, the lack of scale-free topology fit turns out to be caused by interesting biological factors (as showed in SampleOutliersTraits)
+# so appropiate sof-thresholding power can be chosen based on the number of samples specified by a table update in December 2017. Details in:
+# https://www.sciencedirect.com/science/article/pii/S266616672200048X?via%3Dihub
 # Less than 20;20-30;30-40;>40 Unsigned and hybrid: 9;8;7;6
 # Less than 20;20-30;30-40;>40 Signed: 18;16;14;12
 # CONCLUSION: Signed hybrid power 7
@@ -2149,15 +2160,13 @@ setwd("F:/ATLAS_Pra/Protein_module/0.Process/Figures/MOFA/")
 
 #### 3.1 MOFA multigroup Stresses Total | FU; UV; Heat ####
 
-ProtAtlas <- ProtAtlas.jic
-
 ### 3.0 Per Location UV HS alone
 
 ### 3.0 Per population
 
 ## 3.1.1 Format data and import to MOFA
 
-MOFAStressTotal <- log1p(rawinputs$raw)
+MOFAStressTotal <- log1p(rawinputs$raw) # batch removed
 rownames(MOFAStressTotal) <- Samples
 MOFAStressTotal <- t(MOFAStressTotal)
 MOFAStressTotal <- MOFAStressTotal[,c(22:ncol(MOFAStressTotal))]
@@ -2373,7 +2382,7 @@ plot_factors(MOFAgrouped.trained,
 
 ## 3.2.1 Format data and import to MOFA
 
-ProtAtlas.Stress <- ProtAtlas[,c(1,15:51)]
+ProtAtlas.Stress <- ProtAtlas[,c(1,15:51)] # batch-removed
 AllProteinsList <- list(Proteins = ProtAtlas.Stress)
 AllProteinsList$Proteins[,2:ncol(AllProteinsList$Proteins)] <- log10(AllProteinsList$Proteins[,2:ncol(AllProteinsList$Proteins)] + 1)
 rownames(AllProteinsList$Proteins) <- AllProteinsList$Proteins$ProtID
@@ -2386,9 +2395,8 @@ pheno <- data.frame(sample = 1:length(15:51),
 pheno$outcome <- gsub(pattern = "R", replacement = "C", x = pheno$outcome)
 rownames(pheno) <- colnames(AllProteinsList$Proteins)
 mm = model.matrix(~as.factor(outcome), data=pheno)
-mat <- limma::removeBatchEffect(AllProteinsList$Proteins, batch=pheno$batch, design=mm)
+mat <- limma::removeBatchEffect(AllProteinsList$Proteins, batch=pheno$batch, design=mm) # testing more particular batch effect in the reduced df just in case, but no effect on the already batch-removed
 write.table(x = mat ,file = "F:/ATLAS_Pra/Protein_module/0.Process/Figures/MOFA/StressTotal/StressTotal_false_v02/StressTotal_LimmaOutcomeStress.txt", sep = "\t", quote = F, col.names = T, row.names = T)
-
 
 AllProteinsList.vars <- apply(AllProteinsList$Proteins, 1, var)
 AllProteinsList$Proteins <- AllProteinsList$Proteins[names(which(AllProteinsList.vars > 0)),] 
@@ -2820,7 +2828,7 @@ upset(fromList(dataList), sets = names(dataList), order.by = "freq",
 
 ## 3.2.1 Format data and import to MOFA
 
-ProtAtlas.Comp <- ProtAtlas[,c(1,25:155)]
+ProtAtlas.Comp <- ProtAtlas[,c(1,25:155)] # batch-removed
 AllProteinsList <- list(Proteins = ProtAtlas.Comp)
 AllProteinsList$Proteins[,2:ncol(AllProteinsList$Proteins)] <- log10(AllProteinsList$Proteins[,2:ncol(AllProteinsList$Proteins)] + 1)
 rownames(AllProteinsList$Proteins) <- AllProteinsList$Proteins$ProtID
@@ -2845,7 +2853,7 @@ rownames(pheno) <- colnames(AllProteinsList$Proteins)
 mm = model.matrix(~as.factor(outcome), data=pheno)
 mm = model.matrix(~1, data=pheno)
 mod0 = model.matrix(~1,data=pheno)
-mat <- limma::removeBatchEffect(AllProteinsList$Proteins, batch=pheno$batch, design=mm)
+mat <- limma::removeBatchEffect(AllProteinsList$Proteins, batch=pheno$batch, design=mm) # testing more particular batch effect in the reduced df just in case, but no effect on the already batch-removed
 write.table(x = mat ,file = "F:/ATLAS_Pra/Protein_module/0.Process/Figures/MOFA/StressComp/ProtAtlas.Analyses.Comp.LimmaOutcomeLocationStress.batch.txt", sep = "\t", quote = F, col.names = T, row.names = T)
 
 AllProteinsList.vars.HS <- apply(AllProteinsList$Proteins[,c(grep("HS",colnames(AllProteinsList$Proteins)))], 1, var)
@@ -3337,7 +3345,7 @@ upset(fromList(dataList), sets = names(dataList), order.by = "freq",
 
 ## 3.2.1 Format data and import to MOFA
 
-ProtAtlas.Pop <- ProtAtlas[,c(1,92:155)]
+ProtAtlas.Pop <- ProtAtlas[,c(1,92:155)] # batch-removed
 AllProteinsList <- list(Proteins = ProtAtlas.Pop)
 AllProteinsList$Proteins[,2:ncol(AllProteinsList$Proteins)] <- log10(AllProteinsList$Proteins[,2:ncol(AllProteinsList$Proteins)] + 1)
 rownames(AllProteinsList$Proteins) <- AllProteinsList$Proteins$ProtID
@@ -3363,7 +3371,7 @@ rownames(pheno) <- colnames(AllProteinsList$Proteins)
 mm = model.matrix(~as.factor(outcome), data=pheno)
 mm = model.matrix(~1, data=pheno)
 mod0 = model.matrix(~1,data=pheno)
-mat <- limma::removeBatchEffect(AllProteinsList$Proteins, batch=pheno$batch, design=mm)
+mat <- limma::removeBatchEffect(AllProteinsList$Proteins, batch=pheno$batch, design=mm) # testing more particular batch effect in the reduced df just in case, but no effect on the already batch-removed
 write.table(x = mat ,file = "F:/ATLAS_Pra/Protein_module/0.Process/Figures/MOFA/StressPop/ProtAtlas.Analyses.Pop.LimmaOutcomeAll.batch.txt", sep = "\t", quote = F, col.names = T, row.names = T)
 
 
