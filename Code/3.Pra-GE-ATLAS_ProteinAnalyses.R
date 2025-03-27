@@ -914,6 +914,14 @@ for(j in 1:length(INPUTS.F)){
 } # INPUTS.F
 # trying to global biplot picture
 
+write.table(rawinputs$log10, file = "G:/Pra-GE-ATLAS/ATLAS/Pinus_radiata/Protein_module/ProtAtlas.Analyses.txt", sep = "\t", quote = F, col.names = T)
+ProtAtlas = as.data.frame(t(rawinputs$log10))
+colnames(ProtAtlas) = Samples
+ProtAtlas.jic = ProtAtlas
+# NOTE: non-batch removed raw protein abundance abundance is referred through the F: path
+# NOTE: bactch remove transformed protein abundance is referred through the G: path, rawinputs$log10 ($etc) or PROTAS.log10 (.etc), ProtAtlas
+# NOTE: Unified object terminology, removed lines related to experimental testing, and resolved inconsistencies between console and script commands, as well as mixed naming
+
 #### Differential proteins ####
 ## Too many contrast; we only select the most informative ones 
 ## Needle vs Roots vs Floral buds (New tissues set) | 1:12 Tissues
@@ -1109,6 +1117,7 @@ rownames(PROTAS.annotation) <- PROTAS.annotation$ProtID
 
 ## Define sets
 
+# log10 alone worked better and was finally selected
 Tissues <- list(Needle_Buds = read.delim("F:/ATLAS_Pra/Protein_module/0.Process/Tables/sva+limma/Tissues/Tissues_log10.zscore_Needle-Buds_all_Tissues.txt", header = T, sep = "\t", row.names = 1),
                 Root_Needle = read.delim("F:/ATLAS_Pra/Protein_module/0.Process/Tables/sva+limma/Tissues/Tissues_log10.zscore_Root-Needle_all_Tissues.txt", header = T, sep = "\t", row.names = 1),
                 Root_Buds = read.delim("F:/ATLAS_Pra/Protein_module/0.Process/Tables/sva+limma/Tissues/Tissues_log10.zscore_Root-Buds_all_Tissues.txt", header = T, sep = "\t", row.names = 1))
@@ -1286,6 +1295,7 @@ draw(ht.Q.tissue + ht.S.tissue + ht.Q.stress + ht.S.stress, ht_gap = unit(1, "cm
 
 #### Volcanos ####
 
+# best log10 alone
 Tissues <- list(Needle_Buds = read.delim("F:/ATLAS_Pra/Protein_module/0.Process/Tables/sva+limma/Tissues/Tissues_log10.zscore_Needle-Buds_all_Tissues.txt", header = T, sep = "\t", row.names = 1),
                 Root_Needle = read.delim("F:/ATLAS_Pra/Protein_module/0.Process/Tables/sva+limma/Tissues/Tissues_log10.zscore_Root-Needle_all_Tissues.txt", header = T, sep = "\t", row.names = 1),
                 Root_Buds = read.delim("F:/ATLAS_Pra/Protein_module/0.Process/Tables/sva+limma/Tissues/Tissues_log10.zscore_Root-Buds_all_Tissues.txt", header = T, sep = "\t", row.names = 1))
@@ -1377,6 +1387,7 @@ for(i in 1:length(Stress)){
 
 ## Tissues
 
+# best log10 alone
 Tissues <- list(Needle_Buds = read.delim("F:/ATLAS_Pra/Protein_module/0.Process/Tables/sva+limma/Tissues/Tissues_log10.zscore_Needle-Buds_filtered_Tissues.txt", header = T, sep = "\t", row.names = 1),
                 Root_Needle = read.delim("F:/ATLAS_Pra/Protein_module/0.Process/Tables/sva+limma/Tissues/Tissues_log10.zscore_Root-Needle_filtered_Tissues.txt", header = T, sep = "\t", row.names = 1),
                 Root_Buds = read.delim("F:/ATLAS_Pra/Protein_module/0.Process/Tables/sva+limma/Tissues/Tissues_log10.zscore_Root-Buds_filtered_Tissues.txt", header = T, sep = "\t", row.names = 1))
@@ -1390,6 +1401,7 @@ upset(fromList(Tissues), sets = names(Tissues), order.by = "freq",
 
 ## Stress
 
+# best log10 alone
 Stress <- list(Total_FU = read.delim("F:/ATLAS_Pra/Protein_module/0.Process/Tables/sva+limma/Fusarium/Fusarium_log10.zscore_FU-Control_filtered_Fusarium.txt", header = T, sep = "\t", row.names = 1),
               Total_UV = read.delim("F:/ATLAS_Pra/Protein_module/0.Process/Tables/sva+limma/UVTotal/UVTotal_log10.zscore_UV-Control_filtered_UVTotal.txt", header = T, sep = "\t", row.names = 1),
               Total_Heat = read.delim("F:/ATLAS_Pra/Protein_module/0.Process/Tables/sva+limma/HeatTotal/HeatTotal_log10.zscore_Heat-Control_filtered_HeatTotal.txt", header = T, sep = "\t", row.names = 1),
@@ -1419,7 +1431,7 @@ setwd(output.path)
 
 ## Data Prepare and checks
 
-data0 <- read.delim("F:/ATLAS_Pra/Protein_module/0.Process/ProtAtlas.Analyses.txt", header = T, sep = "\t")
+data0 <- read.delim("F:/ATLAS_Pra/Protein_module/0.Process/ProtAtlas.Analyses.txt", header = T, sep = "\t") # non-batch removed, raw
 data0 <- t(data0)
 colnames(data0) <- data0[1,]
 data0 <- data0[-c(1:2),]
@@ -1454,7 +1466,7 @@ data0.list <- list(raw = data0.raw, log10 = data0.log10, log10.zscore = data0.lo
 data0.list <- lapply(data0.list, function(x){
   x <- removeBatchEffect(t(x), batch = metadata$Batch, design = design)
   x <- t(x + abs(min(x)) + 0.01)
-})
+}) # Batch removed and transformed, same as the G: path, but for double-checking
 sample0.metadata <- data.frame(sample_ID = rownames(data0), Stress = labelitass$Stress, Intensity = labelitass$Intensity,
                                Population = labelitass$Population, Technique = labelitass$Technique, Tissues = labelitass$Tissues,
                                Stress.Intensity = labelitass$Stress.Intensity, Population.Stress = labelitass$Population.Stress,
@@ -1858,66 +1870,22 @@ PROTAS <- PROTAS[,c(ncol(PROTAS),1:ncol(PROTAS)-1)]
 colnames(PROTAS)[2] <- "GeneID"
 PROTAS <- PROTAS[,-3]
 PROTAS <- PROTAS[!is.na(PROTAS$Phylostratum),]
-
-## Prepare both transforms log10 and log10.zscore
-
-EVOPROTAS.log10 <- PROTAS
-EVOPROTAS.log10.zscore <- PROTAS
-
-EVOPROTAS.log10[,3:ncol(EVOPROTAS.log10)] <- apply(EVOPROTAS.log10[,3:ncol(EVOPROTAS.log10)], MARGIN = 2, FUN = function(x){
-  x <- log10(x + 1.1)
-  x
-})
-
-EVOPROTAS.log10.zscore[,3:ncol(EVOPROTAS.log10.zscore)] <- apply(EVOPROTAS.log10.zscore[,3:ncol(EVOPROTAS.log10.zscore)], MARGIN = 2, FUN = function(x){
-  x <- log10(x + 1)
-  x <- (x - mean(x))/sd(x)
-  x
-})
+PROTAS[,3:ncol(PROTAS)] <- PROTAS[,3:ncol(PROTAS)] + abs(min(PROTAS[,3:ncol(PROTAS)])) + 0.01
 
 ## Tissues
 
-EVO.Tissues.raw <- data.frame(Phylostratum = PROTAS$Phylostratum, GeneID = PROTAS$GeneID,
+EVO.Tissues <- data.frame(Phylostratum = PROTAS$Phylostratum, GeneID = PROTAS$GeneID,
                                 Adult_Needle = rowMeans(PROTAS[,3:5]), 
                                 Juvenile_Needle = rowMeans(PROTAS[,6:8]),
                                 Roots = rowMeans(PROTAS[,9:11]),
                                 Bud = rowMeans(PROTAS[,12:14])
 )
-
-EVO.Tissues.Means.log10 <- EVO.Tissues.raw
-EVO.Tissues.Means.log10[,3:ncol(EVO.Tissues.Means.log10)] <- apply(EVO.Tissues.Means.log10[,3:ncol(EVO.Tissues.Means.log10)], MARGIN = 2, FUN = function(x){
-  x <- log10(x + 1.1)
-  x
-})
-
-
-EVO.Tissues.log10 <- data.frame(Phylostratum = EVOPROTAS.log10$Phylostratum, GeneID = EVOPROTAS.log10$GeneID,
-                                Adult_Needle = rowMeans(EVOPROTAS.log10[,3:5]), 
-                                Juvenile_Needle = rowMeans(EVOPROTAS.log10[,6:8]),
-                                Roots = rowMeans(EVOPROTAS.log10[,9:11]),
-                                Bud = rowMeans(EVOPROTAS.log10[,12:14])
-                                )
-
-EVO.Tissues.log10.zscore <- data.frame(Phylostratum = EVOPROTAS.log10.zscore$Phylostratum, GeneID = EVOPROTAS.log10.zscore$GeneID,
-                                Adult_Needle = rowMeans(EVOPROTAS.log10.zscore[,3:5]), 
-                                Juvenile_Needle = rowMeans(EVOPROTAS.log10.zscore[,6:8]),
-                                Roots = rowMeans(EVOPROTAS.log10.zscore[,9:11]),
-                                Bud = rowMeans(EVOPROTAS.log10.zscore[,12:14])
-)
-
-
-is.ExpressionSet(EVO.Tissues.log10) 
-is.ExpressionSet(EVO.Tissues.log10.zscore) 
-
-PlotSignature(EVO.Tissues.raw, measure = "TAI", TestStatistic = "FlatLineTest", xlab = "Tissues", ylab = "PAI", permutations = 10000)
-PlotSignature(EVO.Tissues.log10, measure = "TAI", TestStatistic = "FlatLineTest", xlab = "Tissues", ylab = "PAI", permutations = 10000)
-PlotSignature(EVO.Tissues.log10.zscore, measure = "TAI", TestStatistic = "FlatLineTest", xlab = "Tissues", ylab = "PAI", permutations = 10000)
-
-PlotSignature(EVO.Tissues.Means.log10, measure = "TAI", TestStatistic = "FlatLineTest", xlab = "Tissues", ylab = "PAI", permutations = 10000)
+is.ExpressionSet(EVO.Tissues) 
+PlotSignature(EVO.Tissues, measure = "TAI", TestStatistic = "FlatLineTest", xlab = "Tissues", ylab = "PAI", permutations = 10000)
 
 ## Stress Total
 
-EVO.StressTotal.raw <- data.frame(Phylostratum = PROTAS$Phylostratum, GeneID = PROTAS$GeneID,
+EVO.StressTotal <- data.frame(Phylostratum = PROTAS$Phylostratum, GeneID = PROTAS$GeneID,
                                     Control_FU = rowMeans(PROTAS[,15:19]), 
                                     FU = rowMeans(PROTAS[,20:24]),
                                     Control_Heat = rowMeans(PROTAS[,25:28]),
@@ -1929,53 +1897,12 @@ EVO.StressTotal.raw <- data.frame(Phylostratum = PROTAS$Phylostratum, GeneID = P
                                     UV_T3 = rowMeans(PROTAS[,46:48]),
                                     UV_R = rowMeans(PROTAS[,49:51])
 )
-
-EVO.Stress.Means.log10 <- EVO.StressTotal.raw
-EVO.Stress.Means.log10[,3:ncol(EVO.Stress.Means.log10)] <- apply(EVO.Stress.Means.log10[,3:ncol(EVO.Stress.Means.log10)], MARGIN = 2, FUN = function(x){
-  x <- log10(x + 1.1)
-  x
-})
-
-EVO.StressTotal.log10 <- data.frame(Phylostratum = EVOPROTAS.log10$Phylostratum, GeneID = EVOPROTAS.log10$GeneID,
-                                Control_FU = rowMeans(EVOPROTAS.log10[,15:19]), 
-                                FU = rowMeans(EVOPROTAS.log10[,20:24]),
-                                Control_Heat = rowMeans(EVOPROTAS.log10[,25:28]),
-                                Heat_T1 = rowMeans(EVOPROTAS.log10[,29:32]),
-                                Heat_T3 = rowMeans(EVOPROTAS.log10[,33:36]),
-                                Control_UV = rowMeans(EVOPROTAS.log10[,37:39]),
-                                UV_T1 = rowMeans(EVOPROTAS.log10[,40:42]),
-                                UV_T2 = rowMeans(EVOPROTAS.log10[,43:45]),
-                                UV_T3 = rowMeans(EVOPROTAS.log10[,46:48]),
-                                UV_R = rowMeans(EVOPROTAS.log10[,49:51])
-)
-
-EVO.StressTotal.log10.zscore <- data.frame(Phylostratum = EVOPROTAS.log10.zscore$Phylostratum, GeneID = EVOPROTAS.log10.zscore$GeneID,
-                                    Control_FU = rowMeans(EVOPROTAS.log10.zscore[,15:19]), 
-                                    FU = rowMeans(EVOPROTAS.log10.zscore[,20:24]),
-                                    Control_Heat = rowMeans(EVOPROTAS.log10.zscore[,25:28]),
-                                    Heat_T1 = rowMeans(EVOPROTAS.log10.zscore[,29:32]),
-                                    Heat_T3 = rowMeans(EVOPROTAS.log10.zscore[,33:36]),
-                                    Control_UV = rowMeans(EVOPROTAS.log10.zscore[,37:39]),
-                                    UV_T1 = rowMeans(EVOPROTAS.log10.zscore[,40:42]),
-                                    UV_T2 = rowMeans(EVOPROTAS.log10.zscore[,43:45]),
-                                    UV_T3 = rowMeans(EVOPROTAS.log10.zscore[,46:48]),
-                                    UV_R = rowMeans(EVOPROTAS.log10.zscore[,49:51])
-)
-
-
-is.ExpressionSet(EVO.StressTotal.raw)
-is.ExpressionSet(EVO.StressTotal.log10) 
-is.ExpressionSet(EVO.StressTotal.log10.zscore) 
-
-PlotSignature(EVO.StressTotal.raw, measure = "TAI", TestStatistic = "FlatLineTest", xlab = "Tissues", ylab = "PAI",  permutations = 10000)
-PlotSignature(EVO.StressTotal.log10, measure = "TAI", TestStatistic = "FlatLineTest", xlab = "Tissues", ylab = "PAI", permutations = 10000)
-PlotSignature(EVO.StressTotal.log10.zscore, measure = "TAI", TestStatistic = "FlatLineTest", xlab = "Tissues", ylab = "PAI",  permutations = 10000)
-
-PlotSignature(EVO.Stress.Means.log10, measure = "TAI", TestStatistic = "FlatLineTest", xlab = "Tissues", ylab = "PAI", permutations = 10000)
+is.ExpressionSet(EVO.StressTotal)
+PlotSignature(EVO.StressTotal, measure = "TAI", TestStatistic = "FlatLineTest", xlab = "Tissues", ylab = "PAI", permutations = 10000)
 
 ## UV Heat Total, Nucleus, Chloroplast
 
-EVO.StressComp.raw <- data.frame(Phylostratum = PROTAS$Phylostratum, GeneID = PROTAS$GeneID,
+EVO.StressComp <- data.frame(Phylostratum = PROTAS$Phylostratum, GeneID = PROTAS$GeneID,
                                   Total_Control_Heat = rowMeans(PROTAS[,25:28]),
                                   Total_Heat_T1 = rowMeans(PROTAS[,29:32]),
                                   Total_Heat_T3 = rowMeans(PROTAS[,33:36]),
@@ -2003,84 +1930,12 @@ EVO.StressComp.raw <- data.frame(Phylostratum = PROTAS$Phylostratum, GeneID = PR
                                   Chloroplast_UV_T2 = rowMeans(PROTAS[,140:147]),
                                   Chloroplast_UV_T3 = rowMeans(PROTAS[,148:155])
 )
-
-EVO.StressComp.Means.log10 <- EVO.StressComp.raw
-EVO.StressComp.Means.log10[,3:ncol(EVO.StressComp.Means.log10)] <- apply(EVO.StressComp.Means.log10[,3:ncol(EVO.StressComp.Means.log10)], MARGIN = 2, FUN = function(x){
-  x <- log10(x + 1.1)
-  x
-})
-
-EVO.StressComp.log10 <- data.frame(Phylostratum = EVOPROTAS.log10$Phylostratum, GeneID = EVOPROTAS.log10$GeneID,
-                                    Total_Control_Heat = rowMeans(EVOPROTAS.log10[,25:28]),
-                                    Total_Heat_T1 = rowMeans(EVOPROTAS.log10[,29:32]),
-                                    Total_Heat_T3 = rowMeans(EVOPROTAS.log10[,33:36]),
-                                    Total_Control_UV = rowMeans(EVOPROTAS.log10[,37:39]),
-                                    Total_UV_T1 = rowMeans(EVOPROTAS.log10[,40:42]),
-                                    Total_UV_T2 = rowMeans(EVOPROTAS.log10[,43:45]),
-                                    Total_UV_T3 = rowMeans(EVOPROTAS.log10[,46:48]),
-                                    Total_UV_R = rowMeans(EVOPROTAS.log10[,49:51]),
-                                    Nucleus_Control_Heat = rowMeans(EVOPROTAS.log10[,52:55]),
-                                    Nucleus_Heat_T1 = rowMeans(EVOPROTAS.log10[,56:59]),
-                                    Nucleus_Heat_T3 = rowMeans(EVOPROTAS.log10[,60:63]),
-                                    Nucleus_Heat_T5 = rowMeans(EVOPROTAS.log10[,64:67]),
-                                    Nucleus_Heat_T10 = rowMeans(EVOPROTAS.log10[,68:71]),
-                                    Nucleus_Heat_T5R = rowMeans(EVOPROTAS.log10[,72:75]),
-                                    Nucleus_Heat_CR = rowMeans(EVOPROTAS.log10[,76:79]),
-                                    Nucleus_Control_UV = rowMeans(EVOPROTAS.log10[,80:83]),
-                                    Nucleus_UV_T1 = rowMeans(EVOPROTAS.log10[,84:87]),
-                                    Nucleus_UV_T3 = rowMeans(EVOPROTAS.log10[,88:91]),
-                                    Chloroplast_Control_Heat = rowMeans(EVOPROTAS.log10[,92:99]),
-                                    Chloroplast_Heat_T1 = rowMeans(EVOPROTAS.log10[,100:107]),
-                                    Chloroplast_Heat_T3 = rowMeans(EVOPROTAS.log10[,108:115]),
-                                    Chloroplast_Heat_T5 = rowMeans(EVOPROTAS.log10[,116:123]),
-                                    Chloroplast_Control_UV = rowMeans(EVOPROTAS.log10[,124:131]),
-                                    Chloroplast_UV_T1 = rowMeans(EVOPROTAS.log10[,132:139]),
-                                    Chloroplast_UV_T2 = rowMeans(EVOPROTAS.log10[,140:147]),
-                                    Chloroplast_UV_T3 = rowMeans(EVOPROTAS.log10[,148:155])
-)
-EVO.StressComp.log10.zscore <- data.frame(Phylostratum = EVOPROTAS.log10.zscore$Phylostratum, GeneID = EVOPROTAS.log10.zscore$GeneID,
-                                           Total_Control_Heat = rowMeans(EVOPROTAS.log10.zscore[,25:28]),
-                                           Total_Heat_T1 = rowMeans(EVOPROTAS.log10.zscore[,29:32]),
-                                           Total_Heat_T3 = rowMeans(EVOPROTAS.log10.zscore[,33:36]),
-                                           Total_Control_UV = rowMeans(EVOPROTAS.log10.zscore[,37:39]),
-                                           Total_UV_T1 = rowMeans(EVOPROTAS.log10.zscore[,40:42]),
-                                           Total_UV_T2 = rowMeans(EVOPROTAS.log10.zscore[,43:45]),
-                                           Total_UV_T3 = rowMeans(EVOPROTAS.log10.zscore[,46:48]),
-                                           Total_UV_R = rowMeans(EVOPROTAS.log10.zscore[,49:51]),
-                                           Nucleus_Control_Heat = rowMeans(EVOPROTAS.log10.zscore[,52:55]),
-                                           Nucleus_Heat_T1 = rowMeans(EVOPROTAS.log10.zscore[,56:59]),
-                                           Nucleus_Heat_T3 = rowMeans(EVOPROTAS.log10.zscore[,60:63]),
-                                           Nucleus_Heat_T5 = rowMeans(EVOPROTAS.log10.zscore[,64:67]),
-                                           Nucleus_Heat_T10 = rowMeans(EVOPROTAS.log10.zscore[,68:71]),
-                                           Nucleus_Heat_T5R = rowMeans(EVOPROTAS.log10.zscore[,72:75]),
-                                           Nucleus_Heat_CR = rowMeans(EVOPROTAS.log10.zscore[,76:79]),
-                                           Nucleus_Control_UV = rowMeans(EVOPROTAS.log10.zscore[,80:83]),
-                                           Nucleus_UV_T1 = rowMeans(EVOPROTAS.log10.zscore[,84:87]),
-                                           Nucleus_UV_T3 = rowMeans(EVOPROTAS.log10.zscore[,88:91]),
-                                           Chloroplast_Control_Heat = rowMeans(EVOPROTAS.log10.zscore[,92:99]),
-                                           Chloroplast_Heat_T1 = rowMeans(EVOPROTAS.log10.zscore[,100:107]),
-                                           Chloroplast_Heat_T3 = rowMeans(EVOPROTAS.log10.zscore[,108:115]),
-                                           Chloroplast_Heat_T5 = rowMeans(EVOPROTAS.log10.zscore[,116:123]),
-                                           Chloroplast_Control_UV = rowMeans(EVOPROTAS.log10.zscore[,124:131]),
-                                           Chloroplast_UV_T1 = rowMeans(EVOPROTAS.log10.zscore[,132:139]),
-                                           Chloroplast_UV_T2 = rowMeans(EVOPROTAS.log10.zscore[,140:147]),
-                                           Chloroplast_UV_T3 = rowMeans(EVOPROTAS.log10.zscore[,148:155])
-)
-
-
-is.ExpressionSet(EVO.StressComp.raw)
-is.ExpressionSet(EVO.StressComp.log10) 
-is.ExpressionSet(EVO.StressComp.log10.zscore) 
-
-PlotSignature(EVO.StressComp.raw, measure = "TAI", TestStatistic = "FlatLineTest", xlab = "Tissues", ylab = "PAI",  permutations = 10000)
-PlotSignature(EVO.StressComp.log10, measure = "TAI", TestStatistic = "FlatLineTest", xlab = "Tissues", ylab = "PAI", permutations = 10000)
-PlotSignature(EVO.StressComp.log10.zscore, measure = "TAI", TestStatistic = "FlatLineTest", xlab = "Tissues", ylab = "PAI",  permutations = 10000)
-
-PlotSignature(EVO.StressComp.Means.log10, measure = "TAI", TestStatistic = "FlatLineTest", xlab = "Tissues", ylab = "PAI", permutations = 10000)
+is.ExpressionSet(EVO.StressComp)
+PlotSignature(EVO.StressComp, measure = "TAI", TestStatistic = "FlatLineTest", xlab = "Tissues", ylab = "PAI", permutations = 10000)
 
 ## Population E Population T
 
-EVO.StressPops.raw <- data.frame(Phylostratum = PROTAS$Phylostratum, GeneID = PROTAS$GeneID,
+EVO.StressPops <- data.frame(Phylostratum = PROTAS$Phylostratum, GeneID = PROTAS$GeneID,
                                  Chloroplast_Control_Heat_E = rowMeans(PROTAS[,92:95]),
                                  Chloroplast_Heat_T1_E = rowMeans(PROTAS[,100:103]),
                                  Chloroplast_Heat_T3_E = rowMeans(PROTAS[,108:111]),
@@ -2098,60 +1953,8 @@ EVO.StressPops.raw <- data.frame(Phylostratum = PROTAS$Phylostratum, GeneID = PR
                                  Chloroplast_UV_T2_T = rowMeans(PROTAS[,144:147]),
                                  Chloroplast_UV_T3_T = rowMeans(PROTAS[,152:155])
 )
-
-EVO.StressPops.Means.log10 <- EVO.StressPops.raw
-EVO.StressPops.Means.log10[,3:ncol(EVO.StressPops.Means.log10)] <- apply(EVO.StressPops.Means.log10[,3:ncol(EVO.StressPops.Means.log10)], MARGIN = 2, FUN = function(x){
-  x <- log10(x + 1.1)
-  x
-})
-
-EVO.StressPops.log10 <- data.frame(Phylostratum = EVOPROTAS.log10$Phylostratum, GeneID = EVOPROTAS.log10$GeneID,
-                                   Chloroplast_Control_Heat_E = rowMeans(EVOPROTAS.log10[,92:95]),
-                                   Chloroplast_Heat_T1_E = rowMeans(EVOPROTAS.log10[,100:103]),
-                                   Chloroplast_Heat_T3_E = rowMeans(EVOPROTAS.log10[,108:111]),
-                                   Chloroplast_Heat_T5_E = rowMeans(EVOPROTAS.log10[,116:119]),
-                                   Chloroplast_Control_Heat_T = rowMeans(EVOPROTAS.log10[,96:99]),
-                                   Chloroplast_Heat_T1_T = rowMeans(EVOPROTAS.log10[,104:107]),
-                                   Chloroplast_Heat_T3_T = rowMeans(EVOPROTAS.log10[,112:115]),
-                                   Chloroplast_Heat_T5_T = rowMeans(EVOPROTAS.log10[,120:123]),
-                                   Chloroplast_Control_UV_E = rowMeans(EVOPROTAS.log10[,124:127]),
-                                   Chloroplast_UV_T1_E = rowMeans(EVOPROTAS.log10[,132:135]),
-                                   Chloroplast_UV_T2_E = rowMeans(EVOPROTAS.log10[,140:143]),
-                                   Chloroplast_UV_T3_E = rowMeans(EVOPROTAS.log10[,148:151]),
-                                   Chloroplast_Control_UV_T = rowMeans(EVOPROTAS.log10[,128:131]),
-                                   Chloroplast_UV_T1_T = rowMeans(EVOPROTAS.log10[,136:139]),
-                                   Chloroplast_UV_T2_T = rowMeans(EVOPROTAS.log10[,144:147]),
-                                   Chloroplast_UV_T3_T = rowMeans(EVOPROTAS.log10[,152:155])
-)
-EVO.StressPops.log10.zscore <- data.frame(Phylostratum = EVOPROTAS.log10.zscore$Phylostratum, GeneID = EVOPROTAS.log10.zscore$GeneID,
-                                           Chloroplast_Control_Heat_E = rowMeans(EVOPROTAS.log10.zscore[,92:95]),
-                                           Chloroplast_Heat_T1_E = rowMeans(EVOPROTAS.log10.zscore[,100:103]),
-                                           Chloroplast_Heat_T3_E = rowMeans(EVOPROTAS.log10.zscore[,108:111]),
-                                           Chloroplast_Heat_T5_E = rowMeans(EVOPROTAS.log10.zscore[,116:119]),
-                                           Chloroplast_Control_Heat_T = rowMeans(EVOPROTAS.log10.zscore[,96:99]),
-                                           Chloroplast_Heat_T1_T = rowMeans(EVOPROTAS.log10.zscore[,104:107]),
-                                           Chloroplast_Heat_T3_T = rowMeans(EVOPROTAS.log10.zscore[,112:115]),
-                                           Chloroplast_Heat_T5_T = rowMeans(EVOPROTAS.log10.zscore[,120:123]),
-                                           Chloroplast_Control_UV_E = rowMeans(EVOPROTAS.log10.zscore[,124:127]),
-                                           Chloroplast_UV_T1_E = rowMeans(EVOPROTAS.log10.zscore[,132:135]),
-                                           Chloroplast_UV_T2_E = rowMeans(EVOPROTAS.log10.zscore[,140:143]),
-                                           Chloroplast_UV_T3_E = rowMeans(EVOPROTAS.log10.zscore[,148:151]),
-                                           Chloroplast_Control_UV_T = rowMeans(EVOPROTAS.log10.zscore[,128:131]),
-                                           Chloroplast_UV_T1_T = rowMeans(EVOPROTAS.log10.zscore[,136:139]),
-                                           Chloroplast_UV_T2_T = rowMeans(EVOPROTAS.log10.zscore[,144:147]),
-                                           Chloroplast_UV_T3_T = rowMeans(EVOPROTAS.log10.zscore[,152:155])
-)
-
-
-is.ExpressionSet(EVO.StressPops.raw)
-is.ExpressionSet(EVO.StressPops.log10) 
-is.ExpressionSet(EVO.StressPops.log10.zscore) 
-
-PlotSignature(EVO.StressPops.raw, measure = "TAI", TestStatistic = "FlatLineTest", xlab = "Tissues", ylab = "PAI",  permutations = 10000)
-PlotSignature(EVO.StressPops.log10, measure = "TAI", TestStatistic = "FlatLineTest", xlab = "Tissues", ylab = "PAI", permutations = 1000)
-PlotSignature(EVO.StressPops.log10.zscore, measure = "TAI", TestStatistic = "FlatLineTest", xlab = "Tissues", ylab = "PAI",  permutations = 10000)
-
-PlotSignature(EVO.StressPops.Means.log10, measure = "TAI", TestStatistic = "FlatLineTest", xlab = "Tissues", ylab = "PAI", permutations = 10000)
+is.ExpressionSet(EVO.StressPops) 
+PlotSignature(EVO.StressPops, measure = "TAI", TestStatistic = "FlatLineTest", xlab = "Tissues", ylab = "PAI", permutations = 10000)
 
 #### 3. Integration  ####
 
@@ -2160,231 +1963,12 @@ setwd("F:/ATLAS_Pra/Protein_module/0.Process/Figures/MOFA/")
 
 #### 3.1 MOFA multigroup Stresses Total | FU; UV; Heat ####
 
-### 3.0 Per Location UV HS alone
-
-### 3.0 Per population
-
 ## 3.1.1 Format data and import to MOFA
 
-MOFAStressTotal <- log1p(rawinputs$raw) # batch removed
-rownames(MOFAStressTotal) <- Samples
-MOFAStressTotal <- t(MOFAStressTotal)
-MOFAStressTotal <- MOFAStressTotal[,c(22:ncol(MOFAStressTotal))]
-ProteinsList <- list(Proteins = MOFAStressTotal)
-# careful HVF by each group and then take the union to take into account the group effect before selecting HVFs (MOFA log recommendation)
-ProteinsList.vars.FU <- apply(ProteinsList$Proteins[,1:10], 1, var)
-FU <- names(which(ProteinsList.vars.FU > 0))
-FU <- names(sort(apply(ProteinsList$Proteins[,1:10], 1, var),decreasing = T)[1:500])
-ProteinsList.vars.HS <- apply(ProteinsList$Proteins[,c(11:22, 38:65, 78:109)], 1, var)
-HS <- names(which(ProteinsList.vars.HS > 0))
-HS <- names(sort(apply(ProteinsList$Proteins[,c(11:22, 38:65, 78:109)], 1, var),decreasing = T)[1:500])
-ProteinsList.vars.UV <- apply(ProteinsList$Proteins[,c(23:37, 66:77, 110:141)], 1, var)
-UV <- names(which(ProteinsList.vars.UV > 0))
-UV <- names(sort(apply(ProteinsList$Proteins[,c(23:37, 66:77, 110:141)], 1, var),decreasing = T)[1:500])
-features <- unique(c(FU,HS,UV))
-ProteinsList$Proteins <- ProteinsList$Proteins[rownames(ProteinsList$Proteins) %in% features,] 
-ProteinsList$Proteins <- as.matrix(ProteinsList$Proteins)
-
-groups <- c(rep("FU",10), rep("HS",12), rep("UV",15), rep("HS", length(38:65)), rep("UV", length(66:77)), 
-            rep("HS", length(78:109)), rep("UV", length(110:141)))
-
-MOFAgrouped <- create_mofa(data = ProteinsList, groups = groups, save_metadata = TRUE)
-
-## 3.1.2 Prepare MOFA and run
-
-plot_data_overview(MOFAgrouped)
-sample_metadata <- data.frame(
-  sample = colnames(ProteinsList$Proteins),
-  stress = c(rep("C",5), rep("S",5), rep("C",4), rep("S",8), rep("C",3), rep("S",9), rep("R",3)),
-  treatment =c(rep("C",5), rep("FU",5), rep("C",4), rep("HS",8), rep("C",3), rep("UV",9), rep("UVR",3)),
-  intensity = c(labelitass$Intensity[13:49]),
-  group = groups,
-  sample_number = c(1:ncol(ProteinsList$Proteins))
-)
-sample_metadata <- data.frame(
-  sample = colnames(ProteinsList$Proteins),
-  stress = c(labelitass$Stress[13:153]),
-  treatment =c(labelitass$Stress[13:153]),
-  intensity = c(labelitass$Intensity[13:153]),
-  location = c(labelitass$Technique[13:153]),
-  population = c(labelitass$Intensity[13:153]),
-  group = groups,
-  sample_number = c(1:ncol(ProteinsList$Proteins))
-)
-sample_metadata$intensity <- gsub(pattern = "T3", replacement = "T2", sample_metadata$intensity, fixed = T)
-sample_metadata$intensity <- gsub(pattern = "T5", replacement = "T3", sample_metadata$intensity, fixed = T)
-sample_metadata$intensity <- gsub(pattern = "T10", replacement = "T4", sample_metadata$intensity, fixed = T)
-sample_metadata$stress <- gsub(pattern = "FU", replacement = "Stress", sample_metadata$stress, fixed = T)
-sample_metadata$stress <- gsub(pattern = "Heat", replacement = "Stress", sample_metadata$stress, fixed = T)
-sample_metadata$stress <- gsub(pattern = "UV", replacement = "Stress", sample_metadata$stress, fixed = T)
-
-data_opts <- get_default_data_options(MOFAgrouped)
-model_opts <- get_default_model_options(MOFAgrouped)
-model_opts$num_factors <- 10
-train_opts <- get_default_training_options(MOFAgrouped)
-train_opts$maxiter <- "1000000"
-train_opts$convergence_mode <- "slow"
-train_opts$drop_factor_threshold <- 0.05
-train_opts$seed <- 404
-outfileGrouped <- "F:/ATLAS_Pra/Protein_module/0.Process/Figures/MOFA/StressTotal/MOFAStressTotal_log101_V0.hdf5"
-
-MOFAgrouped <- prepare_mofa(MOFAgrouped, data_options = data_opts, model_options = model_opts, training_options = train_opts)
-MOFAgrouped.trained <- run_mofa(MOFAgrouped, outfile = outfileGrouped, use_basilisk = F)
-
-## 3.1.3 Plot General
-
-plot_factor_cor(MOFAgrouped.trained)
-plot_variance_explained(MOFAgrouped.trained, x = "group", y = "factor")
-plot_variance_explained(MOFAgrouped.trained, y = "factor")
-plot_variance_explained(MOFAgrouped.trained, y = "factor", plot_total = T)
-
-MOFAgrouped.trained@cache$variance_explained
-MOFAgrouped.trained@cache$variance_explained$r2_per_factor$female
-MOFAgrouped.trained@cache$variance_explained$r2_per_factor$male
-
-a <- plot_variance_explained(MOFAgrouped.trained, x="view", y="factor")
-b <- plot_variance_explained(MOFAgrouped.trained, x="group", y="factor", plot_total = T)[[2]]
-gridExtra::grid.arrange(b, a, ncol = 1, nrow = 2)
-
-## 3.1.4 LFs Inspection
-
-# Single
-
-MOFAgrouped.trained@samples_metadata <- sample_metadata
-
-plot_factor(MOFAgrouped.trained, 
-            factor = 1,
-            color_by = "location",
-            shape_by = "stress", dot_size = 3
-)
-
-# Multiple
-
-plot_factors(MOFAgrouped.trained, 
-             factors = c(1,2,3,4),
-             color_by = "group", dot_size = 8, shape_by = "group"
-)
-
-plot_factors(MOFAgrouped.trained, 
-             factors = c(1,2,3,4),
-             color_by = "stress", dot_size = 3, shape_by = "location"
-)
-
-# 3.1.1 Format data and import to MOFA
-
-MOFAStressTotal <- log1p(rawinputs$raw)
-rownames(MOFAStressTotal) <- Samples
-MOFAStressTotal <- t(MOFAStressTotal)
-MOFAStressTotal <- MOFAStressTotal[,c(22:ncol(MOFAStressTotal))]
-ProteinsList <- list(Proteins = MOFAStressTotal)
-# careful HVF by each group and then take the union to take into account the group effect before selecting HVFs (MOFA log recommendation)
-ProteinsList.vars.FU <- apply(ProteinsList$Proteins[,1:10], 1, var)
-FU <- names(which(ProteinsList.vars.FU > 0))
-FU <- names(sort(apply(ProteinsList$Proteins[,1:10], 1, var),decreasing = T)[1:500])
-ProteinsList.vars.HS <- apply(ProteinsList$Proteins[,c(11:22, 38:65, 78:109)], 1, var)
-HS <- names(which(ProteinsList.vars.HS > 0))
-HS <- names(sort(apply(ProteinsList$Proteins[,c(11:22, 38:65, 78:109)], 1, var),decreasing = T)[1:500])
-ProteinsList.vars.UV <- apply(ProteinsList$Proteins[,c(23:37, 66:77, 110:141)], 1, var)
-UV <- names(which(ProteinsList.vars.UV > 0))
-UV <- names(sort(apply(ProteinsList$Proteins[,c(23:37, 66:77, 110:141)], 1, var),decreasing = T)[1:500])
-features <- unique(c(FU,HS,UV))
-ProteinsList$Proteins <- ProteinsList$Proteins[rownames(ProteinsList$Proteins) %in% features,] 
-ProteinsList$Proteins <- as.matrix(ProteinsList$Proteins)
-
-groups <- c(rep("FU",10), rep("HS",12), rep("UV",15), rep("HS", length(38:65)), rep("UV", length(66:77)), 
-            rep("HS", length(78:109)), rep("UV", length(110:141)))
-
-MOFAgrouped <- create_mofa(data = ProteinsList, groups = groups, save_metadata = TRUE)
-
-## 3.1.2 Prepare MOFA and run
-
-plot_data_overview(MOFAgrouped)
-sample_metadata <- data.frame(
-  sample = colnames(ProteinsList$Proteins),
-  stress = c(rep("C",5), rep("S",5), rep("C",4), rep("S",8), rep("C",3), rep("S",9), rep("R",3)),
-  treatment =c(rep("C",5), rep("FU",5), rep("C",4), rep("HS",8), rep("C",3), rep("UV",9), rep("UVR",3)),
-  intensity = c(labelitass$Intensity[13:49]),
-  group = groups,
-  sample_number = c(1:ncol(ProteinsList$Proteins))
-)
-sample_metadata <- data.frame(
-  sample = colnames(ProteinsList$Proteins),
-  stress = c(labelitass$Stress[13:153]),
-  treatment =c(labelitass$Stress[13:153]),
-  intensity = c(labelitass$Intensity[13:153]),
-  location = c(labelitass$Technique[13:153]),
-  population = c(labelitass$Intensity[13:153]),
-  group = groups,
-  sample_number = c(1:ncol(ProteinsList$Proteins))
-)
-sample_metadata$intensity <- gsub(pattern = "T3", replacement = "T2", sample_metadata$intensity, fixed = T)
-sample_metadata$intensity <- gsub(pattern = "T5", replacement = "T3", sample_metadata$intensity, fixed = T)
-sample_metadata$intensity <- gsub(pattern = "T10", replacement = "T4", sample_metadata$intensity, fixed = T)
-sample_metadata$stress <- gsub(pattern = "FU", replacement = "Stress", sample_metadata$stress, fixed = T)
-sample_metadata$stress <- gsub(pattern = "Heat", replacement = "Stress", sample_metadata$stress, fixed = T)
-sample_metadata$stress <- gsub(pattern = "UV", replacement = "Stress", sample_metadata$stress, fixed = T)
-
-data_opts <- get_default_data_options(MOFAgrouped)
-model_opts <- get_default_model_options(MOFAgrouped)
-model_opts$num_factors <- 10
-train_opts <- get_default_training_options(MOFAgrouped)
-train_opts$maxiter <- "1000000"
-train_opts$convergence_mode <- "slow"
-train_opts$drop_factor_threshold <- 0.05
-train_opts$seed <- 404
-outfileGrouped <- "F:/ATLAS_Pra/Protein_module/0.Process/Figures/MOFA/StressTotal/MOFAStressTotal_log101_V0.hdf5"
-
-MOFAgrouped <- prepare_mofa(MOFAgrouped, data_options = data_opts, model_options = model_opts, training_options = train_opts)
-MOFAgrouped.trained <- run_mofa(MOFAgrouped, outfile = outfileGrouped, use_basilisk = F)
-
-## 3.1.3 Plot General
-
-plot_factor_cor(MOFAgrouped.trained)
-plot_variance_explained(MOFAgrouped.trained, x = "group", y = "factor")
-plot_variance_explained(MOFAgrouped.trained, y = "factor")
-plot_variance_explained(MOFAgrouped.trained, y = "factor", plot_total = T)
-
-MOFAgrouped.trained@cache$variance_explained
-MOFAgrouped.trained@cache$variance_explained$r2_per_factor$female
-MOFAgrouped.trained@cache$variance_explained$r2_per_factor$male
-
-a <- plot_variance_explained(MOFAgrouped.trained, x="view", y="factor")
-b <- plot_variance_explained(MOFAgrouped.trained, x="group", y="factor", plot_total = T)[[2]]
-gridExtra::grid.arrange(b, a, ncol = 1, nrow = 2)
-
-## 3.1.4 LFs Inspection
-
-# Single
-
-MOFAgrouped.trained@samples_metadata <- sample_metadata
-
-plot_factor(MOFAgrouped.trained, 
-            factor = 1,
-            color_by = "location",
-            shape_by = "stress", dot_size = 3
-)
-
-# Multiple
-
-plot_factors(MOFAgrouped.trained, 
-             factors = c(1,2,3,4),
-             color_by = "group", dot_size = 8, shape_by = "group"
-)
-
-plot_factors(MOFAgrouped.trained, 
-             factors = c(1,2,3,4),
-             color_by = "stress", dot_size = 3, shape_by = "location"
-)
-
-
-
-#### 3.2 MOFA multigroup TotalStresses ####
-
-## 3.2.1 Format data and import to MOFA
-
-ProtAtlas.Stress <- ProtAtlas[,c(1,15:51)] # batch-removed
+ProtAtlas$ProtID = rownames(ProtAtlas)
+ProtAtlas = ProtAtlas[,c(154,1:153)]
+ProtAtlas.Stress <- ProtAtlas[,c(1,15:51)]
 AllProteinsList <- list(Proteins = ProtAtlas.Stress)
-AllProteinsList$Proteins[,2:ncol(AllProteinsList$Proteins)] <- log10(AllProteinsList$Proteins[,2:ncol(AllProteinsList$Proteins)] + 1)
 rownames(AllProteinsList$Proteins) <- AllProteinsList$Proteins$ProtID
 AllProteinsList$Proteins <- AllProteinsList$Proteins[,-1]
 
@@ -2395,7 +1979,7 @@ pheno <- data.frame(sample = 1:length(15:51),
 pheno$outcome <- gsub(pattern = "R", replacement = "C", x = pheno$outcome)
 rownames(pheno) <- colnames(AllProteinsList$Proteins)
 mm = model.matrix(~as.factor(outcome), data=pheno)
-mat <- limma::removeBatchEffect(AllProteinsList$Proteins, batch=pheno$batch, design=mm) # testing more particular batch effect in the reduced df just in case, but no effect on the already batch-removed
+mat <- limma::removeBatchEffect(AllProteinsList$Proteins, batch=pheno$batch, design=mm) # testing more particular batch effect in the reduced df just in case, but no effect
 write.table(x = mat ,file = "F:/ATLAS_Pra/Protein_module/0.Process/Figures/MOFA/StressTotal/StressTotal_false_v02/StressTotal_LimmaOutcomeStress.txt", sep = "\t", quote = F, col.names = T, row.names = T)
 
 AllProteinsList.vars <- apply(AllProteinsList$Proteins, 1, var)
@@ -2406,7 +1990,7 @@ groups <- c(rep("FU",10), rep("HS",12), rep("UV",15))
 
 MOFAgrouped <- create_mofa(data = AllProteinsList, groups = groups, save_metadata = TRUE)
 
-## 3.2.2 Prepare MOFA and run
+## 3.1.2 Prepare MOFA and run
 
 plot_data_overview(MOFAgrouped)
 sample_metadata <- data.frame(
@@ -2431,13 +2015,10 @@ outfileGrouped <- "F:/ATLAS_Pra/Protein_module/0.Process/MOFA2grouped_log101_V0_
 MOFAgrouped <- prepare_mofa(MOFAgrouped, data_options = data_opts, model_options = model_opts, training_options = train_opts)
 MOFAgrouped.trained <- run_mofa(MOFAgrouped, outfile = outfileGrouped)
 
-MOFAgrouped <- prepare_mofa(MOFAgrouped, data_options = data_opts, model_options = model_opts, training_options = train_opts)
-MOFAgrouped.trained <- run_mofa(MOFAgrouped, outfile = outfileGrouped)
-
 MOFAgrouped <- load_model("F:/ATLAS_Pra/Protein_module/0.Process/Figures/MOFA/StressTotal/StressTotal_false_v02/MOFA2grouped_StressTotal_LimmaOutcomeStress_log101_V0_400_false.hdf5")
 MOFAgrouped.trained <- MOFAgrouped
 
-## 3.2.3 Plot General
+## 3.1.3 Plot General
 
 plot_factor_cor(MOFAgrouped.trained)
 plot_variance_explained(MOFAgrouped.trained, x = "group", y = "factor")
@@ -2452,7 +2033,7 @@ a <- plot_variance_explained(MOFAgrouped.trained, x="view", y="factor", factors 
 b <- plot_variance_explained(MOFAgrouped.trained, x="group", y="factor", plot_total = T, factors = 1:4)[[2]]
 PlotVariance <- grid.arrange(b, a, ncol = 1, nrow = 2)
 
-## 3.2.4 LFs Inspection
+## 3.1.4 LFs Inspection
 
 # Single
 
@@ -2540,9 +2121,6 @@ LF4 <- plot_top_weights(MOFAgrouped.trained,
 
 
 gridExtra::grid.arrange(LF1, LF2,LF3 ,LF4, ncol = 2, nrow = 2)
-
-
-
 PROTAS.annotation$Symbol[grep("all-04-326945", PROTAS.annotation$ProtID)]
 
 # Enrichment Analyses #
@@ -2806,31 +2384,12 @@ ht.PSF <- Heatmap(t(PSF.df), name = "PSF.-log10(FDR)", col = col_quantity, rect_
 
 draw(ht.Bin %v% ht.PS %v% ht.PSF, ht_gap = unit(1, "cm"))
 
-# nVenn or Upset same gene family: not that useful (all Stress Total Proteins comes from same 803 founder events)
-factors <- get_factors(object =MOFAgrouped.trained, as.data.frame = T)
-weights <- get_weights(object = MOFAgrouped.trained, as.data.frame = T)
-
-VennFamily <- Ages[,c(6,5)]
-LF1.50 <- names(sort(abs(deframe(weights[which(weights$factor == "Factor1"), c(1,3)])), decreasing = T)[1:500])
-LF1.50 <-  VennFamily$FamilyID[match(x =  LF1.50,table = VennFamily$X.gene)]
-LF2.50 <- names(sort(abs(deframe(weights[which(weights$factor == "Factor2"), c(1,3)])), decreasing = T)[1:500])
-LF2.50 <-  VennFamily$FamilyID[match(x =  LF2.50,table = VennFamily$X.gene)]
-LF3.50 <- names(sort(abs(deframe(weights[which(weights$factor == "Factor3"), c(1,3)])), decreasing = T)[1:500])
-LF3.50 <-  VennFamily$FamilyID[match(x =  LF3.50,table = VennFamily$X.gene)]
-LF4.50 <- names(sort(abs(deframe(weights[which(weights$factor == "Factor4"), c(1,3)])), decreasing = T)[1:500])
-LF4.50 <-  VennFamily$FamilyID[match(x =  LF4.50,table = VennFamily$X.gene)]
-dataList <- list(LF1 = LF1.50, LF2 = LF2.50, LF3 = LF3.50, LF4 = LF4.50)
-#myV <- nVennR::plotVenn(data, nCycles = 20000, opacity = 0.2, borderWidth = 3, systemShow = T, fontScale = 2, outFile = paste0(output.path, "nVennR.svg"))
-upset(fromList(dataList), sets = names(dataList), order.by = "freq", 
-      keep.order = TRUE, empty.intersections = F, mb.ratio = c(0.6,0.4), sets.bar.color = "navajowhite3")
-
 #### 3.2 MOFA multigroup Stress Compartiments (only UV and HS) ####
 
 ## 3.2.1 Format data and import to MOFA
 
-ProtAtlas.Comp <- ProtAtlas[,c(1,25:155)] # batch-removed
+ProtAtlas.Comp <- ProtAtlas[,c(1,25:155)]
 AllProteinsList <- list(Proteins = ProtAtlas.Comp)
-AllProteinsList$Proteins[,2:ncol(AllProteinsList$Proteins)] <- log10(AllProteinsList$Proteins[,2:ncol(AllProteinsList$Proteins)] + 1)
 rownames(AllProteinsList$Proteins) <- AllProteinsList$Proteins$ProtID
 AllProteinsList$Proteins <- AllProteinsList$Proteins[,-1]
 pheno <- data.frame(sample = 1:length(25:155), 
@@ -2841,9 +2400,6 @@ mod = model.matrix(~as.factor(outcome), data=pheno)
 mod = model.matrix(~1, data=pheno)
 mod0 = model.matrix(~1,data=pheno)
 pheno$outcome <- gsub(pattern = "R", replacement = "C", x = pheno$outcome)
-# combat not useful
-combat_edata = ComBat(dat=AllProteinsList$Proteins, batch=pheno$batch, mod=mod, par.prior=TRUE, prior.plots = FALSE, mean.only=FALSE)
-write.table(x = combat_edata ,file = "F:/ATLAS_Pra/Protein_module/0.Process/ProtAtlas.Analyses.Comp.batch.txt", sep = "\t", quote = F, col.names = T, row.names = T)
 # limma
 pheno <- data.frame(sample = 1:length(25:155), 
                     outcome = paste0(sample_metadata$location, "_", sample_metadata$stress),
@@ -2853,7 +2409,7 @@ rownames(pheno) <- colnames(AllProteinsList$Proteins)
 mm = model.matrix(~as.factor(outcome), data=pheno)
 mm = model.matrix(~1, data=pheno)
 mod0 = model.matrix(~1,data=pheno)
-mat <- limma::removeBatchEffect(AllProteinsList$Proteins, batch=pheno$batch, design=mm) # testing more particular batch effect in the reduced df just in case, but no effect on the already batch-removed
+mat <- limma::removeBatchEffect(AllProteinsList$Proteins, batch=pheno$batch, design=mm) # testing more particular batch effect in the reduced df just in case, but no effect
 write.table(x = mat ,file = "F:/ATLAS_Pra/Protein_module/0.Process/Figures/MOFA/StressComp/ProtAtlas.Analyses.Comp.LimmaOutcomeLocationStress.batch.txt", sep = "\t", quote = F, col.names = T, row.names = T)
 
 AllProteinsList.vars.HS <- apply(AllProteinsList$Proteins[,c(grep("HS",colnames(AllProteinsList$Proteins)))], 1, var)
@@ -3322,46 +2878,14 @@ ht.PSF <- Heatmap(PSF.df, name = "PSF.-log10(FDR)", col = col_quantity, rect_gp 
 draw(ht.Bin + ht.PS + ht.PSF, ht_gap = unit(1, "cm"))
 draw(ht.Bin %v% ht.PS %v% ht.PSF, ht_gap = unit(1, "cm"))
 
-# nVenn or Upset same gene family: not that useful (all Stress Total Proteins comes from same 803 founder events)
-factors <- get_factors(object =MOFAgrouped.trained, as.data.frame = T)
-weights <- get_weights(object = MOFAgrouped.trained, as.data.frame = T)
-write.table(factors, "F:/ATLAS_Pra/Protein_module/0.Process/Figures/MOFA/StressComp/FACTORS.txt", col.names = T, sep = "\t", quote = F)
-VennFamily <- Ages[,c(6,5)]
-LF1.50 <- names(sort(abs(deframe(weights[which(weights$factor == "Factor2"), c(1,3)])), decreasing = T)[1:500])
-LF1.50 <-  VennFamily$FamilyID[match(x =  LF1.50,table = VennFamily$X.gene)]
-LF2.50 <- names(sort(abs(deframe(weights[which(weights$factor == "Factor6"), c(1,3)])), decreasing = T)[1:500])
-LF2.50 <-  VennFamily$FamilyID[match(x =  LF2.50,table = VennFamily$X.gene)]
-LF3.50 <- names(sort(abs(deframe(weights[which(weights$factor == "Factor7"), c(1,3)])), decreasing = T)[1:500])
-LF3.50 <-  VennFamily$FamilyID[match(x =  LF3.50,table = VennFamily$X.gene)]
-LF4.50 <- names(sort(abs(deframe(weights[which(weights$factor == "Factor9"), c(1,3)])), decreasing = T)[1:500])
-LF4.50 <-  VennFamily$FamilyID[match(x =  LF4.50,table = VennFamily$X.gene)]
-dataList <- list(LF2 = LF1.50, LF6 = LF2.50, LF7 = LF3.50, LF9 = LF4.50)
-#myV <- nVennR::plotVenn(data, nCycles = 20000, opacity = 0.2, borderWidth = 3, systemShow = T, fontScale = 2, outFile = paste0(output.path, "nVennR.svg"))
-upset(fromList(dataList), sets = names(dataList), order.by = "freq", 
-      keep.order = TRUE, empty.intersections = F, mb.ratio = c(0.6,0.4), sets.bar.color = "navajowhite3")
-
-
 #### 3.3 MOFA multigroup Populations (only chloroplast for both UV and heat stress) ####
 
-## 3.2.1 Format data and import to MOFA
+## 3.3.1 Format data and import to MOFA
 
-ProtAtlas.Pop <- ProtAtlas[,c(1,92:155)] # batch-removed
+ProtAtlas.Pop <- ProtAtlas[,c(1,92:155)]
 AllProteinsList <- list(Proteins = ProtAtlas.Pop)
-AllProteinsList$Proteins[,2:ncol(AllProteinsList$Proteins)] <- log10(AllProteinsList$Proteins[,2:ncol(AllProteinsList$Proteins)] + 1)
 rownames(AllProteinsList$Proteins) <- AllProteinsList$Proteins$ProtID
 AllProteinsList$Proteins <- AllProteinsList$Proteins[,-1]
-
-# combat: not useful
-pheno <- data.frame(sample = 1:length(92:155), 
-                    outcome = paste0(sample_metadata$population, "_", sample_metadata$stress, "_", sample_metadata$time),
-                    batch = c(rep(1,32), rep(2,32)))
-rownames(pheno) <- colnames(AllProteinsList$Proteins)
-mod = model.matrix(~as.factor(outcome), data=pheno)
-mod = model.matrix(~1, data=pheno)
-mod0 = model.matrix(~1,data=pheno)
-
-combat_edata = ComBat(dat=AllProteinsList$Proteins, batch=pheno$batch, mod=mod, par.prior=TRUE, prior.plots = FALSE, mean.only=FALSE)
-write.table(x = combat_edata ,file = "F:/ATLAS_Pra/Protein_module/0.Process/Figures/MOFA/StressPop/ProtAtlas.Analyses.Pop.OutcomeAll.batch.txt", sep = "\t", quote = F, col.names = T, row.names = T)
 
 # limma
 pheno <- data.frame(sample = 1:length(92:155), 
@@ -3371,7 +2895,7 @@ rownames(pheno) <- colnames(AllProteinsList$Proteins)
 mm = model.matrix(~as.factor(outcome), data=pheno)
 mm = model.matrix(~1, data=pheno)
 mod0 = model.matrix(~1,data=pheno)
-mat <- limma::removeBatchEffect(AllProteinsList$Proteins, batch=pheno$batch, design=mm) # testing more particular batch effect in the reduced df just in case, but no effect on the already batch-removed
+mat <- limma::removeBatchEffect(AllProteinsList$Proteins, batch=pheno$batch, design=mm) # testing more particular batch effect in the reduced df just in case, but no effect
 write.table(x = mat ,file = "F:/ATLAS_Pra/Protein_module/0.Process/Figures/MOFA/StressPop/ProtAtlas.Analyses.Pop.LimmaOutcomeAll.batch.txt", sep = "\t", quote = F, col.names = T, row.names = T)
 
 
@@ -3402,7 +2926,7 @@ groups <- c(rep("HS",32), rep("UV",32))
 
 MOFAgrouped <- create_mofa(data = AllProteinsList, groups = groups, save_metadata = TRUE)
 
-## 3.2.2 Prepare MOFA and run
+## 3.3.2 Prepare MOFA and run
 
 plot_data_overview(MOFAgrouped)
 sample_metadata <- data.frame(
@@ -3442,7 +2966,7 @@ MOFAgrouped.trained <- run_mofa(MOFAgrouped, outfile = outfileGrouped)
 MOFAgrouped <- load_model("F:/ATLAS_Pra/Protein_module/0.Process/Figures/MOFA/StressPop/MOFA2grouped_StressPop_Popgroups_CombatOutcomePopStressTime_10LFs_log101_V0_400_false.hdf5")
 MOFAgrouped.trained <- MOFAgrouped
 
-## 3.2.3 Plot General
+## 3.3.3 Plot General
 
 plot_factor_cor(MOFAgrouped.trained)
 plot_variance_explained(MOFAgrouped.trained, x = "group", y = "factor")
@@ -3454,7 +2978,7 @@ a <- plot_variance_explained(MOFAgrouped.trained, x="view", y="factor", factors 
 b <- plot_variance_explained(MOFAgrouped.trained, x="group", y="factor", plot_total = T, factors = c(2,3,4,5,6))[[2]]
 PlotVariance <- grid.arrange(b, a, ncol = 1, nrow = 2)
 
-## 3.2.4 LFs Inspection
+## 3.3.4 LFs Inspection
 
 # Single
 
@@ -3466,7 +2990,7 @@ plot_factor(MOFAgrouped.trained,
             shape_by = "treatment", dot_size = 4
 )
 
-# Multiple: 2 location between both stress shared, UV location unique, HS nuclues;chloroplasto and UV only chloroplast
+# Multiple: 2 location between both stress shared, UV location unique, HS nucleus;chloroplast and UV only chloroplast
 
 plot_factors(MOFAgrouped.trained, 
              factors = c(1,2,3,4,5,6),
@@ -3813,21 +3337,3 @@ ht.PSF <- Heatmap(t(PSF.df), name = "PSF.-log10(FDR)", col = col_quantity, rect_
 
 draw(ht.Bin + ht.PS + ht.PSF, ht_gap = unit(1, "cm"))
 draw(ht.Bin %v% ht.PS %v% ht.PSF, ht_gap = unit(1, "cm"))
-
-# nVenn or Upset same gene family: not that useful (all Stress Total Proteins comes from same 803 founder events)
-factors <- get_factors(object =MOFAgrouped.trained, as.data.frame = T)
-weights <- get_weights(object = MOFAgrouped.trained, as.data.frame = T)
-write.table(factors, "F:/ATLAS_Pra/Protein_module/0.Process/Figures/MOFA/StressPop/FACTORS.txt", col.names = T, sep = "\t", quote = F)
-VennFamily <- Ages[,c(6,5)]
-LF1.50 <- names(sort(abs(deframe(weights[which(weights$factor == "Factor2"), c(1,3)])), decreasing = T)[1:150])
-LF1.50 <-  VennFamily$FamilyID[match(x =  LF1.50,table = VennFamily$X.gene)]
-LF2.50 <- names(sort(abs(deframe(weights[which(weights$factor == "Factor3"), c(1,3)])), decreasing = T)[1:150])
-LF2.50 <-  VennFamily$FamilyID[match(x =  LF2.50,table = VennFamily$X.gene)]
-LF3.50 <- names(sort(abs(deframe(weights[which(weights$factor == "Factor5"), c(1,3)])), decreasing = T)[1:150])
-LF3.50 <-  VennFamily$FamilyID[match(x =  LF3.50,table = VennFamily$X.gene)]
-LF4.50 <- names(sort(abs(deframe(weights[which(weights$factor == "Factor6"), c(1,3)])), decreasing = T)[1:150])
-LF4.50 <-  VennFamily$FamilyID[match(x =  LF4.50,table = VennFamily$X.gene)]
-dataList <- list(LF2 = LF1.50, LF3 = LF2.50, LF5 = LF3.50, LF6 = LF4.50)
-#myV <- nVennR::plotVenn(data, nCycles = 20000, opacity = 0.2, borderWidth = 3, systemShow = T, fontScale = 2, outFile = paste0(output.path, "nVennR.svg"))
-upset(fromList(dataList), sets = names(dataList), order.by = "freq", 
-      keep.order = TRUE, empty.intersections = F, mb.ratio = c(0.6,0.4), sets.bar.color = "navajowhite3")
